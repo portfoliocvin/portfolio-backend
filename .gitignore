@@ -1,0 +1,40 @@
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Python virtual environments
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local databases and backups
+*.sqlite3
+*.db
+*.dump
+*.backup
+*.json
+
+# Uploaded files and private media
+media/
+uploads/
+profile/
+resume/
+favicon/
+
+# Generated static files
+staticfiles/
+
+# Node dependencies (if present)
+node_modules/
+
+# Logs
+*.log
+
+# IDE files
+.vscode/
+.idea/
