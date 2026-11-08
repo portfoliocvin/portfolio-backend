@@ -12,6 +12,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY . .
 
+RUN python manage.py collectstatic --noinput
+
 RUN mkdir -p /app/media /app/staticfiles
 
 EXPOSE 8000
