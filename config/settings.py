@@ -208,6 +208,11 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 
 # CSRF configuration
+CSRF_COOKIE_DOMAIN = os.getenv(
+    "CSRF_COOKIE_DOMAIN",
+    ".portfoliocv.in" if not DEBUG else None
+)
+
 CSRF_TRUSTED_ORIGINS = [
     origin.strip().rstrip("/")
     for origin in os.getenv(
