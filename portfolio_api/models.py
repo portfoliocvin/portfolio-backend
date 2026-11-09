@@ -116,3 +116,27 @@ class ProfileDetails(models.Model):
 
     def __str__(self):
         return self.full_name
+
+
+class JobListing(models.Model):
+    CATEGORY_CHOICES = [
+        ("private", "Private Jobs"),
+        ("government", "Government Jobs"),
+    ]
+
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
+    job_name = models.CharField(max_length=200)
+    role = models.CharField(max_length=200)
+    company_name = models.CharField(max_length=200)
+    application_start_date = models.DateField()
+    application_end_date = models.DateField()
+    application_url = models.URLField(max_length=1000)
+    is_published = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["application_end_date", "-created_at"]
+
+    def __str__(self):
+        return f"{self.job_name} - {self.company_name}"
