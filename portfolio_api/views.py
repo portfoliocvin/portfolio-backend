@@ -784,9 +784,10 @@ def job_to_dict(job):
 
 @require_GET
 def public_jobs(request):
+    from django.utils import timezone
     jobs = JobListing.objects.filter(
         is_published=True,
-        application_end_date__gte=__import__("django").utils.timezone.localdate(),
+        application_end_date__gte=timezone.localdate(),
     )
     return JsonResponse({
         "jobs": [job_to_dict(job) for job in jobs]
