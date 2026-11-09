@@ -20,12 +20,18 @@ from .views import (
     admin_session,
     admin_projects,
     admin_project_detail,
+    public_jobs,
+    admin_jobs,
+    admin_job_detail,
     admin_changes,
     admin_settings,
 )
 
 urlpatterns = [
     path("health/", health_check, name="health_check"),
+    path("jobs/", public_jobs, name="public_jobs"),
+    path("admin/jobs/", admin_jobs, name="admin_jobs"),
+    path("admin/jobs/<int:job_id>/", admin_job_detail, name="admin_job_detail"),
     path("public", public_config, name="public_config"),
     path("admin/upload/<str:kind>", admin_upload, name="admin_upload"),
     path("csrf/", csrf_token, name="csrf_token"),
