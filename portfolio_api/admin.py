@@ -7,6 +7,7 @@ from .models import (
     Skill,
     Certification,
     ProfileDetails,
+    JobListing,
 )
 
 
@@ -47,3 +48,10 @@ class CertificationAdmin(admin.ModelAdmin):
 class ProfileDetailsAdmin(admin.ModelAdmin):
     list_display = ("full_name", "mobile_number", "email")
     search_fields = ("full_name", "email", "mobile_number")
+
+
+@admin.register(JobListing)
+class JobListingAdmin(admin.ModelAdmin):
+    list_display = ("job_name", "role", "company_name", "category", "application_start_date", "application_end_date", "is_published")
+    list_filter = ("category", "is_published")
+    search_fields = ("job_name", "role", "company_name")
