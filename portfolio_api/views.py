@@ -761,3 +761,134 @@ def admin_profile_details(request):
     )
 
     return JsonResponse({"profile": profile_to_dict(profile)})
+
+
+# ---------- Public and admin job listings ----------
+
+from .models import JobListing
+
+
+def job_to_dict(job):
+    return {
+        "id": job.id,
+        "category": job.category,
+        "jobName": job.job_name,
+        "role": job.role,
+        "companyName": job.company_name,
+        "applicationStartDate": job.application_start_date.isoformat(),
+        "applicationEndDate": job.application_end_date.isoformat(),
+        "applicationUrl": job.application_url,
+        "isPublished": job.is_published,
+    }
+
+
+@require_GET
+def public_jobs(request):
+    jobs = JobListing.objects.filter(
+        is_published=True,
+        application_end_date__gte=__import__("django").utils.timezone.localdate(),
+    )
+    return JsonResponse({
+        "jobs": [job_to_dict(job) for job in jobs]
+    })
+
+
+@require_http_methods(["GET", "POST"])
+def admin_jobs(request):
+    if not is_portfolio_admin(request):
+        return JsonResponse({"error": "Authentication required."}, status=401)
+
+    if request.method == "GET":
+        return JsonResponse({
+            "jobs": [job_to_dict(job) for job in JobListing.objects.all()]
+        })
+
+    try:
+        data = json.loads(request.body or "{}")
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid JSON."}, status=400)
+
+    try:
+        job = JobListing(
+            category=str(data.get("category", "")).strip(),
+            job_name=str(data.get("jobName", "")).strip(),
+            role=str(data.get("role", "")).strip(),
+            company_name=str(data.get("companyName", "")).strip(),
+            application_start_date=data.get("applicationStartDate"),
+            application_end_date=data.get("applicationEndDate"),
+            application_url=str(data.get("applicationUrl", "")).strip(),
+            is_published=bool(data.get("isPublished", True)),
+        )
+        if job.category not in ("private", "government"):
+            return JsonResponse({"error": "Choose Private Jobs or Government Jobs."}, status=400)
+        if not all([job.job_name, job.role, job.company_name, job.application_start_date, job.application_end_date, job.application_url]):
+            return JsonResponse({"error": "All job fields are required."}, status=400)
+        job.full_clean()
+        if job.application_end_date < job.application_start_date:
+            return JsonResponse({"error": "Application end date must be on or after the start date."}, status=400)
+        job.save()
+    except (ValidationError, ValueError, TypeError) as exc:
+        message = exc.messages[0] if isinstance(exc, ValidationError) else "Enter valid dates and a valid application URL."
+        return JsonResponse({"error": message}, status=400)
+
+    ChangeHistory.objects.create(
+        entity_type="JobListing",
+        entity_id=job.id,
+        action="CREATE",
+        description=f"Added {job.category} job: {job.job_name}",
+    )
+    return JsonResponse({"job": job_to_dict(job)}, status=201)
+
+
+@require_http_methods(["PUT", "DELETE"])
+def admin_job_detail(request, job_id):
+    if not is_portfolio_admin(request):
+        return JsonResponse({"error": "Authentication required."}, status=401)
+
+    try:
+        job = JobListing.objects.get(pk=job_id)
+    except JobListing.DoesNotExist:
+        return JsonResponse({"error": "Job not found."}, status=404)
+
+    if request.method == "DELETE":
+        title = job.job_name
+        job.delete()
+        ChangeHistory.objects.create(
+            entity_type="JobListing",
+            entity_id=job_id,
+            action="DELETE",
+            description=f"Deleted job: {title}",
+        )
+        return JsonResponse({"detail": "Job deleted."})
+
+    try:
+        data = json.loads(request.body or "{}")
+        job.category = str(data.get("category", job.category)).strip()
+        job.job_name = str(data.get("jobName", job.job_name)).strip()
+        job.role = str(data.get("role", job.role)).strip()
+        job.company_name = str(data.get("companyName", job.company_name)).strip()
+        job.application_start_date = data.get("applicationStartDate", job.application_start_date)
+        job.application_end_date = data.get("applicationEndDate", job.application_end_date)
+        job.application_url = str(data.get("applicationUrl", job.application_url)).strip()
+        job.is_published = bool(data.get("isPublished", job.is_published))
+        if job.category not in ("private", "government"):
+            return JsonResponse({"error": "Choose a valid job category."}, status=400)
+        if not all([job.job_name, job.role, job.company_name, job.application_start_date, job.application_end_date, job.application_url]):
+            return JsonResponse({"error": "All job fields are required."}, status=400)
+        job.full_clean()
+        if job.application_end_date < job.application_start_date:
+            return JsonResponse({"error": "Application end date must be on or after the start date."}, status=400)
+        job.save()
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid JSON."}, status=400)
+    except (ValidationError, ValueError, TypeError) as exc:
+        message = exc.messages[0] if isinstance(exc, ValidationError) else "Enter valid dates and a valid application URL."
+        return JsonResponse({"error": message}, status=400)
+
+    ChangeHistory.objects.create(
+        entity_type="JobListing",
+        entity_id=job.id,
+        action="UPDATE",
+        description=f"Updated job: {job.job_name}",
+    )
+    return JsonResponse({"job": job_to_dict(job)})
